@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI 유저를 위한 클립보드 이미지 → PNG 저장 도구. 광고 없이 빠르고 감성적인 도구." />
+  <meta name="keywords" content="GPT 이미지, PNG 변환기, clipboard to png, 이미지 저장, AI 유틸리티" />
+  <meta name="author" content="너의이름">
+  <title>Paste to PNG</title>
+  <style>
+    :root {
+      --background: #ffffff;
+      --text: #333;
+      --ad-background: #000000;
+      --zone-gray: #444444;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      text-align: center;
+    }
+
+    .container {
+      background: var(--background);
+      padding: 3rem;
+      width: 400px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .format-toggle {
+      font-size: 1rem;
+      color: #fff;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 300px;
+      height: 50px;
+      border: none;
+      cursor: pointer;
+      margin: 2px auto;
+    }
+
+    .dropzone {
+      width: 300px;
+      height: 100px;
+      background: var(--zone-gray);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 500;
+      margin: 2px auto;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dropzone img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      object-position: center;
+      z-index: 2;
+    }
+
+    .placeholder {
+      position: absolute;
+      color: #aaa;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .dropzone:hover {
+      background: #e0e0e0;
+      cursor: pointer;
+    }
+
+    .clear-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: #888;
+      cursor: pointer;
+      z-index: 4;
+    }
+
+    .clear-btn:hover {
+      color: #000;
+    }
+
+    button.download {
+      background: #000;
+      color: #fff;
+      width: 300px;
+      height: 50px;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 2px auto;
+    }
+
+    .popup-ad {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 300px;
+      height: 100px;
+      background: #000;
+      color: #fff;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+    }
+
+    .popup-ad .close-ad {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: transparent;
+      border: none;
+      font-size: 1rem;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .divider-strip {
+      width: 300px;
+      background: #000;
+      margin: 2px auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="divider-strip" style="height:2px;"></div>
+    <div class="divider-strip" style="height:5px;"></div>
+    <div class="divider-strip" style="height:10px;"></div>
+    <div class="divider-strip" style="height:20px;"></div>
+    <div class="divider-strip" style="height:30px;"></div>
+    <div class="divider-strip" style="height:50px;"></div>
+    <button class="format-toggle" id="formatBtn">Paste to PNG</button>
+    <div class="dropzone" contenteditable="true" id="dropzone">
+      <button class="clear-btn" id="clearBtn">×</button>
+      <span class="placeholder">Paste here</span>
+    </div>
+    <button class="download" id="saveBtn">Save as PNG</button>
+    <div class="divider-strip" style="height:50px;"></div>
+    <div class="divider-strip" style="height:30px;"></div>
+    <div class="divider-strip" style="height:20px;"></div>
+    <div class="divider-strip" style="height:10px;"></div>
+    <div class="divider-strip" style="height:5px;"></div>
+    <div class="divider-strip" style="height:2px;"></div>
+  </div>
+
+  <footer style="margin-top: 2rem; font-size: 0.75rem; color: #888; text-align: center; width: 100%;">
+    © 2025 PasteStudiø. Designed with care. Not powered by ads* (yet).
+  </footer>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const placeholder = dropzone.querySelector('.placeholder');
+    const formatBtn = document.getElementById('formatBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    let currentFormat = 'png';
+
+    formatBtn.addEventListener('click', () => {
+      currentFormat = currentFormat === 'png' ? 'jpg' : 'png';
+      formatBtn.textContent = `Paste to ${currentFormat.toUpperCase()}`;
+      saveBtn.textContent = `Save as ${currentFormat.toUpperCase()}`;
+    });
+
+    dropzone.addEventListener('paste', (e) => {
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            dropzone.innerHTML = '<button class="clear-btn" id="clearBtn">×</button>';
+            dropzone.appendChild(img);
+            document.getElementById('clearBtn').addEventListener('click', clearImage);
+          };
+          reader.readAsDataURL(blob);
+          break;
+        }
+      }
+    });
+
+    function clearImage() {
+      dropzone.innerHTML = '<button class="clear-btn" id="clearBtn">×</button><span class="placeholder">Paste here</span>';
+      document.getElementById('clearBtn').addEventListener('click', clearImage);
+      const ad = document.querySelector('.popup-ad');
+      if (ad) ad.remove();
+    }
+
+    saveBtn.addEventListener('click', () => {
+      const img = dropzone.querySelector('img');
+      if (!img) return alert('이미지를 먼저 붙여넣으세요!');
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const tempImage = new Image();
+      tempImage.onload = function () {
+        canvas.width = tempImage.width;
+        canvas.height = tempImage.height;
+        ctx.drawImage(tempImage, 0, 0);
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL(`image/${currentFormat}`);
+        link.download = `pasted-image.${currentFormat}`;
+        link.click();
+
+        if (!document.querySelector('.popup-ad')) {
+          const popup = document.createElement('div');
+          popup.className = 'popup-ad';
+          popup.innerHTML = `We're Seeking Sponsors`;
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'close-ad';
+          closeBtn.textContent = '×';
+          closeBtn.addEventListener('click', () => popup.remove());
+          popup.appendChild(closeBtn);
+          dropzone.appendChild(popup);
+        }
+      };
+      tempImage.src = img.src;
+    });
+  </script>
+</body>
+</html>
