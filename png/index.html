@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Paste your image and download as PDF. Clean, beautiful, and sponsor-hungry." />
-  <meta name="keywords" content="paste image, paste to pdf, clipboard to pdf" />
+  <meta name="description" content="Paste your image and download as PNG. Clean, beautiful, and sponsor-hungry." />
+  <meta name="keywords" content="paste image, paste to png, clipboard to png" />
   <meta name="author" content="PasteStudiø">
   <title>Paste Img</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     body {
       margin: 0;
-      background: #e3a857; /* Indian yellow */
+      background: #e3a857;
       color: #000;
       font-family: 'Inter', 'Helvetica Neue', sans-serif;
       text-align: center;
@@ -28,25 +28,21 @@
       width: 300px;
       height: 450px;
       margin: 1rem auto 0.5rem auto;
-    }
-    .dropzone {
-      width: 100%;
-      height: 100%;
       background: #f9d282;
-      display: block;
-      font-size: 1rem;
-      border: none;
-      outline: none;
-      resize: none;
-      padding: 1rem;
-      box-sizing: border-box;
-      overflow-y: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-direction: column;
+    }
+    .image-preview {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
     .placeholder {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
       color: #666;
+      font-size: 0.9rem;
       pointer-events: none;
       opacity: 0.5;
     }
@@ -65,65 +61,40 @@
       bottom: 1rem;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 15;
     }
     .preview-btn:hover {
       background: #000;
       color: #fff;
     }
-    .preview-area {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #fff;
-      overflow-y: auto;
-      z-index: 999;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
-    .preview-toolbar {
+    .remove-btn {
       position: absolute;
-      top: 1rem;
-      right: 1rem;
-      display: flex;
-      gap: 0.5rem;
-    }
-    .circle-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.1);
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
       border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 16px;
       cursor: pointer;
-      transition: background 0.3s, color 0.3s;
-    }
-    .circle-btn:hover {
-      background: #000;
-      color: #fff;
-    }
-    .preview-content {
-      all: unset;
-      display: block;
-      width: 100%;
-      padding: 2rem;
+      z-index: 10;
     }
     .ad-banner {
       position: absolute;
       top: 0;
       left: 0;
-      width: 300px;
-      height: 450px;
-      background: #000;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1rem;
       font-weight: bold;
-      z-index: 20;
+      z-index: 50;
       opacity: 0;
       transition: opacity 0.5s ease;
       pointer-events: none;
@@ -142,72 +113,86 @@
 </head>
 <body>
   <div class="container">
-    <div class="dropzone-wrapper">
-      <div class="dropzone" id="codeInput" contenteditable="true" oninput="togglePlaceholder()"></div>
+    <div class="dropzone-wrapper" id="dropzoneWrapper" tabindex="0">
       <span class="placeholder" id="placeholder">Paste your image here</span>
+      <button class="preview-btn" id="previewBtn" onclick="downloadPNG()">▶</button>
       <div class="ad-banner" id="adBanner">We're seeking sponsors</div>
-      <button class="preview-btn" onclick="downloadPDF()">▶</button>
     </div>
   </div>
-
-  <div class="preview-area" id="preview">
-    <div class="preview-toolbar">
-      <button class="circle-btn" onclick="downloadPDF()">▶</button>
-      <button class="circle-btn" onclick="closePreview()">×</button>
-    </div>
-    <div id="preview-content"></div>
-  </div>
-
   <footer>
     © 2025 PasteStudiø. Designed with care.
   </footer>
-
   <script>
-    function togglePlaceholder() {
-      const input = document.getElementById('codeInput');
-      const placeholder = document.getElementById('placeholder');
-      placeholder.style.display = input.innerText.trim() ? 'none' : 'block';
+    const wrapper = document.getElementById('dropzoneWrapper');
+    const placeholder = document.getElementById('placeholder');
+    const previewBtn = document.getElementById('previewBtn');
+    const ad = document.getElementById('adBanner');
+
+    wrapper.addEventListener('paste', function (e) {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            img.id = 'pastedImage';
+            img.className = 'image-preview';
+            wrapper.innerHTML = '';
+            wrapper.appendChild(img);
+            wrapper.appendChild(previewBtn);
+            wrapper.appendChild(ad);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = '×';
+            removeBtn.className = 'remove-btn';
+            removeBtn.onclick = () => resetDropzone();
+            wrapper.appendChild(removeBtn);
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Delete') {
+        resetDropzone();
+      }
+    });
+
+    function resetDropzone() {
+      wrapper.innerHTML = '<span class="placeholder" id="placeholder">Paste your image here</span>';
+      wrapper.appendChild(previewBtn);
+      wrapper.appendChild(ad);
     }
 
-    function getFileNameFromContent(text) {
-      const firstLine = text.trim().split('\n')[0] || 'pasted';
-      const trimmed = firstLine.replace(/<[^>]+>/g, '').trim();
-      const isKorean = /[\u3131-\uD79D]/ugi.test(trimmed);
-      const maxLen = isKorean ? 6 : 10;
-      const base = trimmed.slice(0, maxLen) || 'pasted';
-      return base + '-pastestudio.pdf';
+    function getFileName() {
+      return 'pasted-image-pastestudio.png';
     }
 
-    function downloadPDF() {
-      const contentEl = document.getElementById('codeInput');
-      const content = contentEl.innerHTML;
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = content;
+    function downloadPNG() {
+      const image = document.getElementById('pastedImage');
+      if (!image) return;
 
-      const textOnly = contentEl.innerText;
-      const filename = getFileNameFromContent(textOnly);
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
 
-      const opt = {
-        margin: 0.5,
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(wrapper).save();
+      const link = document.createElement('a');
+      link.download = getFileName();
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      const ad = document.getElementById('adBanner');
       ad.classList.add('show');
       setTimeout(() => {
         ad.classList.remove('show');
       }, 2000);
     }
-
-    function closePreview() {
-      document.getElementById('preview').style.display = 'none';
-    }
-
-    document.addEventListener('DOMContentLoaded', togglePlaceholder);
   </script>
 </body>
 </html>
