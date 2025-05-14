@@ -48,6 +48,11 @@
       align-items: center;
       justify-content: center;
     }
+
+    .dropzone:focus:empty::before {
+      content: "";
+    }
+    
     .dropzone:focus {
       color: #000;
     }
